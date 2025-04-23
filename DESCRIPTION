@@ -1,0 +1,15 @@
+Package: openf1r
+Type: Package
+Title: Retrieve Formula 1 Race Data from the OpenF1 API
+Version: 0.1.0
+Authors@R: c(
+    person("Mike", "Cheng", role = c("aut", "cre", 'cph'), email = "mikefc@coolbutuseless.com")
+    )
+Maintainer: Mike Cheng <mikefc@coolbutuseless.com>
+URL: https://github.com/coolbutuseless/openf1r
+BugReports: https://github.com/coolbutuseless/openf1r/issues
+Description: An interface to the OpenF1 API to retrieve Formula 1 race data 
+    such as race timings, lap speeds, driver information.  
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.2

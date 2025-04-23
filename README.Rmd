@@ -1,0 +1,238 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+
+library(dplyr)
+library(openf1r)
+
+if (FALSE) {
+# Check for functions which do not have an @examples block for roxygen
+system("grep -c examples man/*Rd", intern = TRUE) |> 
+  grep(":0$", x = _, value = TRUE)
+}
+
+if (FALSE) {
+  covr::report(covr::package_coverage(
+    line_exclusions = list()
+  ))
+}
+
+if (FALSE) {
+  pkgdown::build_site(override = list(destination = "../coolbutuseless.github.io/package/openf1r"))
+}
+
+# Makevars options to do some deep testing for CRAN
+
+# Type conversions are sane
+# PKG_FLAG=-Wconversion
+
+# Pointer overflow checks i.e. dodgy pointer arithmetic
+# PKG_CFLAGS+=-fsanitize=pointer-overflow -fsanitize-trap=pointer-overflow
+# Then run in the debugger:
+# R -d lldb 
+# run
+# testthat::test_local()
+
+```
+
+# openf1r
+
+<!-- badges: start -->
+![](https://img.shields.io/badge/cool-useless-green.svg)
+[![CRAN](https://www.r-pkg.org/badges/version/openf1r)](https://CRAN.R-project.org/package=openf1r)
+[![R-CMD-check](https://github.com/coolbutuseless/openf1/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/openf1/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
+`{openf1r}` is a package for fetching Formula 1 race data from the 
+[OpenF1 API](https://openf1.org).
+
+
+### What's in the box
+
+
+* `f1_cars()`	Some data about each car, at a sample rate of about 3.7 Hz.
+* `f1_drivers()`	Provides information about drivers for each session.
+* `f1_intervals()`	Fetches real-time interval data between drivers and their gap to the race leader. Available during races only, with updates approximately every 4 seconds.
+* `f1_laps()`	Provides detailed information about individual laps.
+* `f1_locations()`	The approximate location of the cars on the circuit, at a sample rate of about 3.7 Hz.
+* `f1_meetings()`	Provides information about meetings i.e. a Grand Prix or testing weekend. Usually includes multiple sessions (practice, qualifying, race, ...).
+* `f1_pits()`	Provides information about cars going through the pit lane.
+* `f1_positions()`	Provides driver positions throughout a session, including initial placement and subsequent changes.
+* `f1_race_control()`	Provides information about race control (racing incidents, flags, safety car, ...).
+* `f1_radios()`	Provides a collection of radio exchanges between Formula 1 drivers and their respective teams during sessions.
+* `f1_sessions()`	Provides information about sessions - i.e. a distinct period of track activity during a Grand Prix (practice, qualifying, sprint, race, ...).
+* `f1_stints()`	Provides information about individual stints i.e. a period of continuous driving by a driver during a session.
+* `f1_weather()`	The weather over the track, updated every minute.
+* `clear_cache()`	Clear cached downloads
+* `segments_sector()`	Information about the codes for mini-segments
+
+## Installation
+
+<!-- This package can be installed from CRAN -->
+
+<!-- ``` r -->
+<!-- install.packages('openf1r') -->
+<!-- ``` -->
+
+You can install the latest development version from
+[GitHub](https://github.com/coolbutuseless/openf1r) with:
+
+``` r
+# install.package('remotes')
+remotes::install_github('coolbutuseless/openf1r')
+```
+
+<!-- Pre-built source/binary versions can also be installed from -->
+<!-- [R-universe](https://r-universe.dev) -->
+
+<!-- ``` r -->
+<!-- install.packages('openf1r', repos = c('https://coolbutuseless.r-universe.dev', 'https://cloud.r-project.org')) -->
+<!-- ``` -->
+
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+```{r example}
+library(dplyr)
+library(ggplot2)
+library(openf1r)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Find the session info for the 2025 Australian GP Race
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+f1_sessions(year = 2025, country_code = 'AUS') %>%
+  select(1:6, session_key) %>%
+  knitr::kable()
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Which drivers were there?
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+f1_drivers(session_key = 9693) %>%
+  select(1:5, name_acronym) %>%
+  knitr::kable()
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# How did Piastri do (driver #81) ?
+# Race position data indicates Piastri started 2nd but finished 9th
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pos <- f1_positions(session_key = 9693, driver_number = 81) %>%
+  mutate(date = lubridate::ymd_hms(date))
+
+ggplot(pos) +
+  geom_line(aes(date, position)) + 
+  geom_point(aes(date, position)) +
+  geom_text(aes(date, position, label = position), hjust = -0.3, vjust = -0.3) +
+  theme_bw() + 
+  scale_y_reverse(limits = c(20, 0)) +
+  labs(
+    title = "Oscar Piastri's race position",
+    subtitle = "2025 Australian F1 Grand Prix"
+  )
+  
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# What does the lap position data look like?
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+loc <- f1_locations(session_key = 9693, driver_number = 81)
+ggplot(loc) + 
+  geom_path(aes(x, y), alpha = 0.2) + 
+  theme_bw() + 
+  coord_equal() +
+  labs(
+    title = "Oscar Piastri's race track location",
+    subtitle = "2025 Australian F1 Grand Prix"
+  )
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Race incidents
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+race_control <- f1_race_control(session_key = 9693) %>%
+  filter(flag %in% c('YELLOW', 'DOUBLE YELLOW', 'RED')) %>%
+  select(date, flag, lap_number, message, sector) %>%
+  mutate(date = lubridate::ymd_hms(date))
+
+race_control %>%
+  knitr::kable()
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Lap speeds - including outlaps
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+laps <- f1_laps(session_key = 9693, driver_number = 81)
+ggplot(laps) + 
+  geom_line(aes(lap_number, lap_duration)) +
+  scale_y_continuous(limits = c(0, NA)) +
+  theme_bw() +
+  labs(
+    title = "Oscar Piastri's race track location\nYellow lines indicate yellow flags",
+    subtitle = "2025 Australian F1 Grand Prix"
+  )
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Race incidents superimposed on Piastri's lap times
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ggplot(laps) + 
+  geom_line(aes(lap_number, lap_duration)) +
+  geom_vline(data = race_control, aes(xintercept = lap_number), color = 'orange') +
+  scale_y_continuous(limits = c(0, NA)) +
+  theme_bw() +
+  labs(
+    title = "Oscar Piastri's race track location",
+    subtitle = "2025 Australian F1 Grand Prix"
+  )
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# All drivers and their race position for this race
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pos <- f1_positions(session_key = 9693) %>%
+  mutate(
+    date = lubridate::ymd_hms(date),
+    position = as.factor(position),
+    driver_number = as.factor(driver_number)
+  )
+
+drivers <- f1_drivers(session_key = 9693) %>%
+  mutate(driver_number = as.factor(driver_number))
+
+pos_final <- pos %>%
+  group_by(driver_number) %>%
+  filter(row_number() == n()) %>%
+  ungroup() %>%
+  left_join(drivers, by = 'driver_number')
+
+
+ggplot(pos) + 
+  geom_path(aes(date, position, group = driver_number, color = driver_number)) + 
+  geom_text(data = pos_final, aes(date, position, label = full_name, color = driver_number),
+            hjust = -0.3) +
+  theme_bw() + 
+  labs(
+    title = "Race position of all drivers",
+    subtitle = "2025 Australian F1 Grand Prix"
+  ) + 
+  theme(legend.position = 'none') +
+  expand_limits(x = max(pos_final$date) + 3000)
+```
+
+
+
+
+
+## Related Software
+
+* [f1dataR](https://cran.r-project.org/package=f1dataR)
+
+
