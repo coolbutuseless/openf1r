@@ -7,7 +7,7 @@
 
 ![](https://img.shields.io/badge/cool-useless-green.svg)
 [![CRAN](https://www.r-pkg.org/badges/version/openf1r)](https://CRAN.R-project.org/package=openf1r)
-[![R-CMD-check](https://github.com/coolbutuseless/openf1/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/openf1/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/coolbutuseless/openf1r/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/openf1r/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 `{openf1r}` is a package for fetching Formula 1 race data from the
