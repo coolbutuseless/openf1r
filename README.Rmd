@@ -229,6 +229,61 @@ ggplot(pos) +
 
 
 
+```{r echo=FALSE, eval=FALSE}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(gganimate)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Find the session information
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sess <- f1_sessions(
+  country_name = "Saudi Arabia", 
+  session_type = 'Race',
+  year         = 2025
+)
+
+drivers <- f1_drivers(session_key = sess$session_key)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Locations for all cars in the first minute of the race
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+locs <- f1_locations(
+  session_key   = sess$session_key, 
+  "date >= 2025-04-20T17:03:55",
+  "date <= 2025-04-20T17:05:10"
+) %>%
+  filter(driver_number %in% c(1, 81)) 
+
+track <- locs %>%
+  filter(driver_number == 1) %>%
+  select(-driver_number, -date)
+
+# locs <- locs %>%
+#   mutate(date = lubridate::floor_date(date)) %>%
+#   group_by(driver_number, date) %>%
+#   filter(row_number() == 1) %>%
+#   ungroup()
+
+p <- ggplot(locs) + 
+  geom_path(data = track, aes(x, y)) +
+  geom_point(aes(x, y, colour = as.factor(driver_number))) +
+  theme_void() + 
+  coord_equal() +
+  theme(legend.position = 'none') +
+  transition_states(date) +
+  # view_follow() +
+  view_static() +
+  NULL
+
+print(p, fps = 12, nframes = length(unique(locs$date)))
+
+```
+
+
+
+
 
 
 ## Related Software

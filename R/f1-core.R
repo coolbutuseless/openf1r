@@ -30,6 +30,8 @@ f1_url <- function(type, opts = list()) {
     opts_str <- paste(opts_str, extra, sep = "&")
   }
   
+  opts_str <- gsub("\\s+", "%20", opts_str)
+  
   sprintf("https://api.openf1.org/v1/%s?%s", type, opts_str)
 }
 
